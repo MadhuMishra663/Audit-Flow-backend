@@ -1,0 +1,39 @@
+{
+  "name": "audit-flow-backend",
+  "version": "1.0.0",
+  "description": "AuditFlow is a modern audit and compliance management platform that simplifies audit processes, improves transparency, and ensures accountability. It provides structured audit workflows, real-time progress monitoring, and centralized documentation for teams and organizations.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MadhuMishra663/Audit-Flow-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MadhuMishra663/Audit-Flow-backend/issues"
+  },
+  "homepage": "https://github.com/MadhuMishra663/Audit-Flow-backend#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.5"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.0.10",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}
