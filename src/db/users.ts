@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Schema, Types, model } from "mongoose";
 
 const userSchema = new Schema(
   {
@@ -7,8 +7,15 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ["ADMIN", "AUDITOR", "CLIENT"],
-      default: "AUDITOR",
+      enum: ["ADMIN", "AUDITOR", "DEPARTMENT"],
+      default: "DEPARTMENT",
+    },
+    department: {
+      type: Types.ObjectId,
+      ref: "Department",
+      required: function () {
+        return this.role === "DEPARTMENT";
+      },
     },
   },
   { timestamps: true },

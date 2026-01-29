@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../../db/users";
+import Department from "../../db/departments";
 
 /**
  * @desc    Register new user
@@ -10,17 +11,21 @@ import User from "../../db/users";
  */
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, role } = req.body;
-
-    // Validation
-    if (!name || !email || !password) {
+    const { name, email, password, departmentId } = req.body;
+    if (!name || !email || !password || !departmentId) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
 
-    // Check existing user
+    const department = await Department.findById(departmentId);
+    if (!department) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid department",
+      });
+    }
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -28,33 +33,33 @@ export const register = async (req: Request, res: Response) => {
         message: "User already exists",
       });
     }
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: role || "AUDITOR",
+      role: "DEPARTMENT",
+      department: departmentId,
     });
 
-    return res.status(201).json({
+    await Department.findByIdAndUpdate(departmentId, {
+      $addToSet: { members: user._id },
+    });
+    res.status(201).json({
       success: true,
       message: "User registered successfully",
-      data: {
+      user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        department: department.name,
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Registration failed",
-      error: error instanceof Error ? error.message : error,
     });
   }
 };
