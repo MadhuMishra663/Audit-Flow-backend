@@ -14,10 +14,28 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
       userId: string;
       role: "ADMIN" | "AUDITOR" | "DEPARTMENT";
     };
-
-    req.user = decoded; // ✅ TS now accepts this
+    req.user = decoded;
     next();
   } catch {
     return res.status(401).json({ message: "Invalid token" });
   }
+};
+
+export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user?.role !== "ADMIN") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+};
+
+export const allowAuditor = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  console.log("ALLOW AUDITOR:", req.user);
+  if (req.user?.role !== "AUDITOR") {
+    return res.status(403).json({ message: "Auditor access required" });
+  }
+  next();
 };
