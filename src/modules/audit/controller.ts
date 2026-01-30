@@ -4,13 +4,13 @@ import AuditQuestion from "../../db/auditQuestions";
 import Department from "../../db/departments";
 import Notification from "../../db/notifications";
 
-export const createAuditQuestion = async (req: Request, res: Response) => {
+export const createBulkAuditQuestions = async (req: Request, res: Response) => {
   try {
-    const { title, description, departmentId, dueDate } = req.body;
-    const auditorId = req.user.userId; // from auth middleware
+    const { departmentId, dueDate, questions } = req.body;
+    const auditorId = req.user!.userId;
 
-    if (!title || !departmentId) {
-      return res.status(400).json({ message: "Missing required fields" });
+    if (!departmentId || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ message: "Invalid request body" });
     }
 
     const department =
@@ -18,31 +18,39 @@ export const createAuditQuestion = async (req: Request, res: Response) => {
     if (!department) {
       return res.status(404).json({ message: "Department not found" });
     }
-
-    const question = await AuditQuestion.create({
-      title,
-      description,
+    // Prepare audit questions
+    const auditDocs = questions.map((q: any) => ({
+      title: q.title,
+      description: q.description,
       department: departmentId,
       createdBy: auditorId,
       dueDate,
-    });
-
-    // Notify department members
-    const notifications = department.members.map((member: any) => ({
-      user: member._id,
-      message: `New audit question assigned: ${title}`,
-      relatedQuestion: question._id,
     }));
+
+    const createdQuestions = await AuditQuestion.insertMany(auditDocs);
+
+    // Create notifications
+    const notifications = [];
+    for (const member of department.members as any[]) {
+      for (const question of createdQuestions) {
+        notifications.push({
+          user: member._id,
+          message: `New audit question assigned: ${question.title}`,
+          relatedQuestion: question._id,
+        });
+      }
+    }
 
     await Notification.insertMany(notifications);
 
     res.status(201).json({
       success: true,
-      message: "Audit question created and department notified",
-      question,
+      message: "Bulk audit questions created",
+      count: createdQuestions.length,
+      questions: createdQuestions,
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create audit question" });
+    res.status(500).json({ message: "Failed to create bulk audit questions" });
   }
 };
 
@@ -61,5 +69,46 @@ export const getMyDepartmentQuestions = async (req: Request, res: Response) => {
     res.json({ success: true, questions });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch questions" });
+  }
+};
+
+export const submitDepartmentAnswer = async (req: Request, res: Response) => {
+  try {
+    const { questionId, departmentId } = req.body;
+
+    // Find the question
+    const question = await AuditQuestion.findById(questionId);
+    if (!question)
+      return res.status(404).json({ message: "Question not found" });
+
+    // Find the department inside the question
+    const dept = question.departments.find(
+      (d) => d.department.toString() === departmentId,
+    );
+
+    if (!dept)
+      return res.status(404).json({ message: "Department not assigned" });
+    // Update department status
+    dept.status = "SUBMITTED";
+
+    // Update overall question status
+    if (
+      question.departments.every(
+        (d) => d.status === "SUBMITTED" || d.status === "REVIEWED",
+      )
+    ) {
+      question.status = "COMPLETE";
+    } else {
+      question.status = "PENDING";
+    }
+
+    await question.save();
+    res.status(200).json({
+      success: true,
+      message: "Answer submitted successfully",
+      question,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to submit answer" });
   }
 };
