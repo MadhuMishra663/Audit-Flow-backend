@@ -11,21 +11,36 @@ import Department from "../../db/departments";
  */
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, departmentId } = req.body;
-    if (!name || !email || !password || !departmentId) {
+    const { name, email, password, departmentId, role } = req.body;
+
+    // Validate basic required fields
+    if (!name || !email || !password || !role) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: "Name, email, password, and role are required",
       });
     }
 
-    const department = await Department.findById(departmentId);
-    if (!department) {
+    // If role is not admin, departmentId is required
+    if (role !== "admin" && !departmentId) {
       return res.status(400).json({
         success: false,
-        message: "Invalid department",
+        message: "Department ID is required for non-admin users",
       });
     }
+
+    let departmentName = "";
+    if (departmentId) {
+      const department = await Department.findById(departmentId);
+      if (!department) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid department",
+        });
+      }
+      departmentName = department.name;
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -33,19 +48,27 @@ export const register = async (req: Request, res: Response) => {
         message: "User already exists",
       });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
+    const userData: any = {
       name,
       email,
       password: hashedPassword,
-      role: "DEPARTMENT",
-      department: departmentId,
-    });
+      role: role.toUpperCase(), // "ADMIN" | "DEPARTMENT" | "AUDITOR"
+    };
 
-    await Department.findByIdAndUpdate(departmentId, {
-      $addToSet: { members: user._id },
-    });
+    if (departmentId) userData.department = departmentId;
+
+    const user = await User.create(userData);
+
+    // Add to department members if not admin
+    if (departmentId) {
+      await Department.findByIdAndUpdate(departmentId, {
+        $addToSet: { members: user._id },
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -53,10 +76,11 @@ export const register = async (req: Request, res: Response) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        department: department.name,
+        department: departmentName,
       },
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Registration failed",
@@ -117,7 +141,7 @@ export const login = async (req: Request, res: Response) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role.toLowerCase(),
       },
     });
   } catch (error) {
