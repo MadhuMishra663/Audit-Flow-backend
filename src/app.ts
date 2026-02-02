@@ -15,26 +15,18 @@ if (!CLIENT_URLS) {
 }
 
 /* ✅ CORS CONFIG */
-const allowedOrigins: string[] = process.env.CLIENT_URLS
-  ? process.env.CLIENT_URLS.split(",")
-  : [];
+
+const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        origin.endsWith(".vercel.app")
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+      console.log("Incoming origin:", origin);
+      if (!origin) return callback(null, true); // server-to-server or Postman
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(null, false);
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
