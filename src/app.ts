@@ -15,8 +15,8 @@ if (!CLIENT_URLS) {
 }
 
 /* ✅ CORS CONFIG */
-const allowedOrigins: string[] = process.env.CLIENT_URLSS
-  ? process.env.CLIENT_URLSS.split(",")
+const allowedOrigins: string[] = process.env.CLIENT_URLS
+  ? process.env.CLIENT_URLS.split(",")
   : [];
 
 app.use(
