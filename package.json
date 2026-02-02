@@ -2,7 +2,7 @@
   "name": "audit-flow-backend",
   "version": "1.0.0",
   "description": "AuditFlow is a modern audit and compliance management platform that simplifies audit processes, improves transparency, and ensures accountability. It provides structured audit workflows, real-time progress monitoring, and centralized documentation for teams and organizations.",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
