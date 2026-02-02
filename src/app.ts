@@ -8,15 +8,15 @@ dotenv.config();
 const app = express();
 
 /* ✅ ENV CONFIG */
-const CLIENT_URL = process.env.CLIENT_URL;
+const CLIENT_URLS = process.env.CLIENT_URLS;
 
-if (!CLIENT_URL) {
-  throw new Error("❌ CLIENT_URL is not defined in .env");
+if (!CLIENT_URLS) {
+  throw new Error("❌ CLIENT_URLS is not defined in .env");
 }
 
 /* ✅ CORS CONFIG */
-const allowedOrigins: string[] = process.env.CLIENT_URLS
-  ? process.env.CLIENT_URLS.split(",")
+const allowedOrigins: string[] = process.env.CLIENT_URLSS
+  ? process.env.CLIENT_URLSS.split(",")
   : [];
 
 app.use(
