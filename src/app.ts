@@ -21,7 +21,7 @@ const allowedOrigins: string[] = process.env.CLIENT_URLS
 
 app.use(
   cors({
-    origin: function (origin, callback) {
+    origin: (origin, callback) => {
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
@@ -29,10 +29,12 @@ app.use(
       ) {
         callback(null, true);
       } else {
-        callback(new Error("CORS blocked"));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
