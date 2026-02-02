@@ -37,13 +37,13 @@
     // Recommended Options
     "strict": true,
     "verbatimModuleSyntax": false,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
+    // "isolatedModules": true,
+    // "noUncheckedSideEffectImports": true,
+    // "moduleDetection": "force",
     "skipLibCheck": true,
     "rootDir": "./src",
 "outDir": "./dist",
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    // "typeRoots": ["./node_modules/@types", "./src/types"],
 
 "esModuleInterop": true,
 
