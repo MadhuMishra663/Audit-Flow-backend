@@ -14,25 +14,28 @@ if (!CLIENT_URLS) {
   throw new Error("❌ CLIENT_URLS is not defined in .env");
 }
 
-/* ✅ CORS CONFIG */
+const allowedOrigins = CLIENT_URLS.split(",");
 
-const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
-
+/* ✅ CORS MUST COME FIRST */
 app.use(
   cors({
     origin: (origin, callback) => {
       console.log("Incoming origin:", origin);
-      if (!origin) return callback(null, true); // server-to-server or Postman
+
+      if (!origin) return callback(null, true); // Postman / server calls
       if (allowedOrigins.includes(origin)) return callback(null, true);
+
       return callback(null, false);
     },
     credentials: true,
   }),
 );
 
+/* ✅ THEN body parsers */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+/* ✅ THEN routes */
 app.use("/api", routes);
 
 export default app;
