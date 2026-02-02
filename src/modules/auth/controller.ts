@@ -133,6 +133,14 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "1d" },
     );
 
+    const COOKIE_NAME = process.env.COOKIE_NAME || "auth_user";
+    res.cookie(COOKIE_NAME, token, {
+      httpOnly: false, // true if you want JS cannot read (safer)
+      sameSite: "lax", // "lax" for localhost
+      secure: false, // true in prod HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
