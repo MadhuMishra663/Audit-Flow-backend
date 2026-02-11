@@ -1,14 +1,15 @@
-import { Types } from "mongoose";
+import "express";
 
 declare global {
   namespace Express {
+    interface User {
+      userId: string;
+      role: "SUPER_ADMIN" | "ADMIN" | "AUDITOR" | "DEPARTMENT";
+      companyId?: string;
+    }
+
     interface Request {
-      user: {
-        userId: Types.ObjectId | string;
-        role: "ADMIN" | "AUDITOR" | "DEPARTMENT";
-      };
+      user?: User;
     }
   }
 }
-
-export {};

@@ -12,6 +12,11 @@ const departmentSchema = new Schema(
     description: {
       type: String,
     },
+    company: {
+      type: Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
     members: [
       {
         type: Types.ObjectId,
