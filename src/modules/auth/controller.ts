@@ -9,81 +9,106 @@ import Department from "../../db/departments";
  * @route   POST /api/auth/register
  * @access  Public
  */
-export const register = async (req: Request, res: Response) => {
-  try {
-    const { name, email, password, departmentId, role } = req.body;
 
-    // Validate basic required fields
+//this route is for company admin to create users under their company
+export const companyAdminRegister = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role, departmentId } = req.body;
+
     if (!name || !email || !password || !role) {
       return res.status(400).json({
         success: false,
-        message: "Name, email, password, and role are required",
+        message: "All fields are required",
       });
     }
 
-    // If role is not admin, departmentId is required
-    if (role !== "admin" && !departmentId) {
+    const normalizedRole = role.toUpperCase();
+
+    const allowedRoles = ["AUDITOR", "DEPARTMENT"];
+    if (!allowedRoles.includes(normalizedRole)) {
       return res.status(400).json({
         success: false,
-        message: "Department ID is required for non-admin users",
+        message: "Invalid role",
       });
     }
 
-    let departmentName = "";
+    if (normalizedRole === "DEPARTMENT" && !departmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Department required for department user",
+      });
+    }
+    if (!req.user?.companyId) {
+      return res.status(403).json({
+        success: false,
+        message: "Company context missing",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      email,
+      company: req.user!.companyId,
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists in company",
+      });
+    }
+
     if (departmentId) {
-      const department = await Department.findById(departmentId);
+      const department = await Department.findOne({
+        _id: departmentId,
+        company: req.user!.companyId,
+      });
+
       if (!department) {
         return res.status(400).json({
           success: false,
           message: "Invalid department",
         });
       }
-      departmentName = department.name;
-    }
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "User already exists",
-      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    if (!req.user?.companyId) {
+      return res.status(403).json({
+        success: false,
+        message: "Company context missing",
+      });
+    }
 
-    const userData: any = {
+    const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: role.toUpperCase(), // "ADMIN" | "DEPARTMENT" | "AUDITOR"
-    };
+      role: normalizedRole,
+      department: departmentId,
+      company: req.user!.companyId,
+    });
 
-    if (departmentId) userData.department = departmentId;
-
-    const user = await User.create(userData);
-
-    // Add to department members if not admin
-    if (departmentId) {
-      await Department.findByIdAndUpdate(departmentId, {
-        $addToSet: { members: user._id },
-      });
+    if (normalizedRole === "DEPARTMENT" && departmentId) {
+      await Department.updateOne(
+        { _id: departmentId, company: req.user!.companyId },
+        { $addToSet: { members: user._id } },
+      );
     }
 
     res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message: "User created successfully",
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        department: departmentName,
+        role: user.role,
       },
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       success: false,
-      message: "Registration failed",
+      message: "User creation failed",
     });
   }
 };
@@ -97,7 +122,6 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -105,7 +129,6 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Check user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
@@ -114,7 +137,13 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Compare password
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is disabled",
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
@@ -123,40 +152,88 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Generate token
     const token = jwt.sign(
       {
         userId: user._id,
         role: user.role,
+        companyId: user.company,
       },
       process.env.JWT_SECRET as string,
       { expiresIn: "1d" },
     );
 
-    const COOKIE_NAME = process.env.COOKIE_NAME || "auth_user";
-    res.cookie(COOKIE_NAME, token, {
-      httpOnly: false, // true if you want JS cannot read (safer)
-      sameSite: "lax", // "lax" for localhost
-      secure: false, // true in prod HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    const isProduction = process.env.NODE_ENV === "production";
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProduction, // HTTPS only in prod
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role.toLowerCase(),
+        role: user.role, // ❗ KEEP AS IS
       },
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: "Login failed",
-      error: error instanceof Error ? error.message : error,
     });
   }
+};
+
+export const createCompanyAdmin = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, companyId } = req.body;
+
+    if (!name || !email || !password || !companyId) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const admin = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "ADMIN",
+      company: companyId,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Company admin created",
+      admin: {
+        id: admin._id,
+        email: admin.email,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Admin creation failed" });
+  }
+};
+
+// GET /api/auth/me
+export const me = async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  const user = await User.findById(req.user.userId).select("-password");
+
+  res.json({
+    success: true,
+    user,
+  });
 };

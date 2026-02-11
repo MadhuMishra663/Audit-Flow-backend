@@ -7,8 +7,15 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ["ADMIN", "AUDITOR", "DEPARTMENT"],
+      enum: ["SUPER_ADMIN", "ADMIN", "AUDITOR", "DEPARTMENT"],
       default: "DEPARTMENT",
+    },
+    company: {
+      type: Types.ObjectId,
+      ref: "Company",
+      required: function () {
+        return this.role !== "SUPER_ADMIN";
+      },
     },
     department: {
       type: Types.ObjectId,
@@ -17,7 +24,12 @@ const userSchema = new Schema(
         return this.role === "DEPARTMENT";
       },
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
+
   { timestamps: true },
 );
 

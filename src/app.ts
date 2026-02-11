@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import routes from "./routes";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -20,12 +21,14 @@ const allowedOrigins = CLIENT_URLS.split(",");
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log("Incoming origin:", origin);
+      // allow requests with no origin (Postman, curl)
+      if (!origin) return callback(null, true);
 
-      if (!origin) return callback(null, true); // Postman / server calls
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-      return callback(null, false);
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   }),
@@ -34,7 +37,7 @@ app.use(
 /* ✅ THEN body parsers */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(cookieParser());
 /* ✅ THEN routes */
 app.use("/api", routes);
 
