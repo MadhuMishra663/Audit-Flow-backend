@@ -1,10 +1,6 @@
 // src/modules/company/controller.ts
 import { Request, Response } from "express";
-import Company from "../../db/companies";
-import User from "../../db/users";
-import Department from "../../db/departments";
-import Audit from "../../db/audits";
-import { Types } from "mongoose";
+import { pool } from "../../config/db";
 
 export const createCompany = async (req: Request, res: Response) => {
   try {
@@ -14,7 +10,14 @@ export const createCompany = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Company name required" });
     }
 
-    const company = await Company.create({ name });
+    const result = await pool.query(
+      `INSERT INTO companies (name)
+       VALUES ($1)
+       RETURNING *`,
+      [name],
+    );
+
+    const company = result.rows[0];
 
     res.status(201).json({
       success: true,
@@ -33,14 +36,25 @@ export const deleteCompany = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid company id" });
     }
 
-    // 🔒 Safety checks
-    const usersCount = await User.countDocuments({ company: companyId });
-    const departmentsCount = await Department.countDocuments({
-      company: companyId,
-    });
-    const auditsCount = await Audit.countDocuments({
-      company: companyId,
-    });
+    // 🔒 Safety checks (same logic as Mongo)
+    const usersCountResult = await pool.query(
+      `SELECT COUNT(*) FROM users WHERE company_id=$1`,
+      [companyId],
+    );
+
+    const departmentsCountResult = await pool.query(
+      `SELECT COUNT(*) FROM departments WHERE company_id=$1`,
+      [companyId],
+    );
+
+    const auditsCountResult = await pool.query(
+      `SELECT COUNT(*) FROM audits WHERE company_id=$1`,
+      [companyId],
+    );
+
+    const usersCount = Number(usersCountResult.rows[0].count);
+    const departmentsCount = Number(departmentsCountResult.rows[0].count);
+    const auditsCount = Number(auditsCountResult.rows[0].count);
 
     if (usersCount > 0 || departmentsCount > 0 || auditsCount > 0) {
       return res.status(400).json({
@@ -49,7 +63,7 @@ export const deleteCompany = async (req: Request, res: Response) => {
       });
     }
 
-    await Company.deleteOne({ _id: companyId });
+    await pool.query(`DELETE FROM companies WHERE id=$1`, [companyId]);
 
     res.json({
       success: true,

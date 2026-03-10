@@ -1,16 +1,83 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import User from "../../db/users";
-import Department from "../../db/departments";
+import { pool } from "../../config/db";
 
 /**
- * @desc    Register new user
- * @route   POST /api/auth/register
- * @access  Public
+ * @desc Register new user
+ * @route POST /api/auth/register
  */
 
-//this route is for company admin to create users under their company
+export const createSuperAdmin = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, secret } = req.body;
+
+    if (!name || !email || !password || !secret) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    // check secret key
+    if (secret !== process.env.SUPER_ADMIN_SECRET) {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid secret key",
+      });
+    }
+
+    // check if super admin already exists
+    const existingSuperAdmin = await pool.query(
+      `SELECT id FROM users WHERE role='SUPER_ADMIN'`,
+    );
+
+    if (existingSuperAdmin.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Super admin already exists",
+      });
+    }
+
+    // check if email exists
+    const existingUser = await pool.query(
+      `SELECT id FROM users WHERE email=$1`,
+      [email],
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (name,email,password,role)
+       VALUES ($1,$2,$3,'SUPER_ADMIN')
+       RETURNING id,name,email,role`,
+      [name, email, hashedPassword],
+    );
+
+    const user = result.rows[0];
+
+    res.status(201).json({
+      success: true,
+      message: "Super Admin created successfully",
+      user,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Super admin creation failed",
+    });
+  }
+};
+// company admin creates users
 export const companyAdminRegister = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, departmentId } = req.body;
@@ -38,6 +105,7 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
         message: "Department required for department user",
       });
     }
+
     if (!req.user?.companyId) {
       return res.status(403).json({
         success: false,
@@ -45,12 +113,12 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
       });
     }
 
-    const existingUser = await User.findOne({
-      email,
-      company: req.user!.companyId,
-    });
+    const existingUser = await pool.query(
+      `SELECT id FROM users WHERE email=$1 AND company_id=$2`,
+      [email, req.user.companyId],
+    );
 
-    if (existingUser) {
+    if (existingUser.rows.length > 0) {
       return res.status(409).json({
         success: false,
         message: "User already exists in company",
@@ -58,12 +126,12 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
     }
 
     if (departmentId) {
-      const department = await Department.findOne({
-        _id: departmentId,
-        company: req.user!.companyId,
-      });
+      const department = await pool.query(
+        `SELECT id FROM departments WHERE id=$1 AND company_id=$2`,
+        [departmentId, req.user.companyId],
+      );
 
-      if (!department) {
+      if (department.rows.length === 0) {
         return res.status(400).json({
           success: false,
           message: "Invalid department",
@@ -72,26 +140,29 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    if (!req.user?.companyId) {
-      return res.status(403).json({
-        success: false,
-        message: "Company context missing",
-      });
-    }
 
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: normalizedRole,
-      department: departmentId,
-      company: req.user!.companyId,
-    });
+    const result = await pool.query(
+      `INSERT INTO users (name,email,password,role,department_id,company_id)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       RETURNING id,name,email,role`,
+      [
+        name,
+        email,
+        hashedPassword,
+        normalizedRole,
+        departmentId || null,
+        req.user.companyId,
+      ],
+    );
+
+    const user = result.rows[0];
 
     if (normalizedRole === "DEPARTMENT" && departmentId) {
-      await Department.updateOne(
-        { _id: departmentId, company: req.user!.companyId },
-        { $addToSet: { members: user._id } },
+      await pool.query(
+        `INSERT INTO department_members (department_id,user_id)
+         VALUES ($1,$2)
+         ON CONFLICT DO NOTHING`,
+        [departmentId, user.id],
       );
     }
 
@@ -99,7 +170,7 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
       success: true,
       message: "User created successfully",
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -114,9 +185,7 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
 };
 
 /**
- * @desc    Login user
- * @route   POST /api/auth/login
- * @access  Public
+ * LOGIN
  */
 export const login = async (req: Request, res: Response) => {
   try {
@@ -129,7 +198,12 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
+      email,
+    ]);
+
+    const user = result.rows[0];
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -137,7 +211,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    if (!user.isActive) {
+    if (!user.is_active) {
       return res.status(403).json({
         success: false,
         message: "Account is disabled",
@@ -145,6 +219,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -154,9 +229,9 @@ export const login = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       {
-        userId: user._id,
+        userId: user.id,
         role: user.role,
-        companyId: user.company,
+        companyId: user.company_id,
       },
       process.env.JWT_SECRET as string,
       { expiresIn: "1d" },
@@ -166,7 +241,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: isProduction, // HTTPS only in prod
+      secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
       maxAge: 24 * 60 * 60 * 1000,
     });
@@ -174,11 +249,15 @@ export const login = async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role, // ❗ KEEP AS IS
+      data: {
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          companyId: user.company_id,
+        },
       },
     });
   } catch (error) {
@@ -197,25 +276,30 @@ export const createCompanyAdmin = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    const exists = await User.findOne({ email });
-    if (exists) {
+    const exists = await pool.query(`SELECT id FROM users WHERE email=$1`, [
+      email,
+    ]);
+
+    if (exists.rows.length > 0) {
       return res.status(409).json({ message: "User already exists" });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const admin = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: "ADMIN",
-      company: companyId,
-    });
+    const result = await pool.query(
+      `INSERT INTO users (name,email,password,role,company_id)
+       VALUES ($1,$2,$3,'ADMIN',$4)
+       RETURNING id,email`,
+      [name, email, hashedPassword, companyId],
+    );
+
+    const admin = result.rows[0];
 
     res.status(201).json({
       success: true,
       message: "Company admin created",
       admin: {
-        id: admin._id,
+        id: admin.id,
         email: admin.email,
       },
     });
@@ -230,10 +314,28 @@ export const me = async (req: Request, res: Response) => {
     return res.status(401).json({ message: "Not authenticated" });
   }
 
-  const user = await User.findById(req.user.userId).select("-password");
+  const result = await pool.query(
+    `SELECT id,name,email,role FROM users WHERE id=$1`,
+    [req.user.userId],
+  );
+
+  const user = result.rows[0];
 
   res.json({
     success: true,
     user,
+  });
+};
+
+export const logout = (req: Request, res: Response) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
   });
 };
