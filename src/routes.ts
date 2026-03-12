@@ -13,6 +13,6 @@ router.use("/auth", authRoutes);
 // router.use("/departments", departmentRoutes);
 // router.use("/audits", auditRoutes);
 // router.use("/user", userRoutes);
-router.use("/company", companyRoutes);
+router.use("/companies", companyRoutes);
 
 export default router;
