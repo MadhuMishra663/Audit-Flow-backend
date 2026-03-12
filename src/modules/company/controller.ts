@@ -73,3 +73,103 @@ export const deleteCompany = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to delete company" });
   }
 };
+
+// src/modules/company/controller.ts
+
+export const getAllCompanies = async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT * 
+      FROM companies
+      ORDER BY created_at DESC
+    `);
+
+    res.status(200).json({
+      success: true,
+      total: result.rows.length,
+      companies: result.rows,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch companies",
+    });
+  }
+};
+
+export const updateCompany = async (req: Request, res: Response) => {
+  try {
+    const { Id } = req.params;
+    const updates = req.body;
+
+    if (!Id) {
+      return res.status(400).json({ message: "Company ID required" });
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        message: "At least one field required to update",
+      });
+    }
+
+    const fields = Object.keys(updates);
+    const values = Object.values(updates);
+
+    const setQuery = fields
+      .map((field, index) => `${field} = $${index + 1}`)
+      .join(", ");
+
+    const query = `
+      UPDATE companies
+      SET ${setQuery}, updated_at = NOW()
+      WHERE id = $${fields.length + 1}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, [...values, Id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Company updated successfully",
+      company: result.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update company",
+    });
+  }
+};
+
+export const getSingleCompany = async (req: Request, res: Response) => {
+  try {
+    const { Id } = req.params;
+
+    if (!Id) {
+      return res.status(400).json({
+        message: "Company ID is required",
+      });
+    }
+
+    const result = await pool.query(`SELECT * FROM companies WHERE id = $1`, [
+      Id,
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Company not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      company: result.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch company",
+    });
+  }
+};
