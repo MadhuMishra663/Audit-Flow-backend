@@ -6,7 +6,7 @@ import {
   me,
   logout,
   createSuperAdmin,
-} from "../../modules/auth/controller";
+} from "./controller";
 import { allowRoles, protect } from "../../middleware/auth";
 
 const router = Router();

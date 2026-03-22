@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { allowAuditor, allowRoles, protect } from "../../middleware/auth";
+import { allowRoles, protect } from "../../middleware/auth";
 
 import {
   createAudit,
@@ -8,10 +8,8 @@ import {
   updateAuditStatus,
 } from "./audit/controller";
 
-import { adminDashboard } from "./dashboard";
-
 import {
-  addMemberToDepartment,
+  // addMemberToDepartment,
   createDepartment,
   deleteDepartment,
   getDepartments,
@@ -19,7 +17,6 @@ import {
 } from "./department/controller";
 
 import { companyAdminRegister } from "../auth/controller";
-import { getCompanyUsers, updateUserStatus } from "./user/controller";
 
 const router = Router();
 
@@ -55,47 +52,29 @@ router.post(
 );
 
 /* ======================================================
-   DASHBOARD
-====================================================== */
-
-// GET /api/admin/dashboard
-router.get("/dashboard", protect, allowRoles("ADMIN"), adminDashboard);
-
-/* ======================================================
    USERS (Company Admin creates & manages users)
 ====================================================== */
 
 // POST /api/admin/users
 router.post("/users", protect, allowRoles("ADMIN"), companyAdminRegister);
 
-// PATCH /api/admin/users/:id/status
-router.post(
-  "/users/:id/status",
-  protect,
-  allowRoles("ADMIN"),
-  updateUserStatus,
-);
-
-// GET /api/admin/users
-router.get("/users", protect, allowRoles("ADMIN"), getCompanyUsers);
-
 /* ======================================================
    DEPARTMENTS
 ====================================================== */
 
 // POST /api/admin/departments
-router.post("/departments", protect, allowRoles("ADMIN"), createDepartment);
+// router.post("/departments", protect, allowRoles("ADMIN"), createDepartment);
 
 // GET /api/admin/departments
-router.get("/departments", protect, allowRoles("ADMIN"), getDepartments);
+// router.get("/departments", protect, allowRoles("ADMIN"), getDepartments);
 
 // POST /api/admin/departments/add-member
-router.post(
-  "/departments/add-member",
-  protect,
-  allowRoles("ADMIN"),
-  addMemberToDepartment,
-);
+// router.post(
+//   "/departments/add-member",
+//   protect,
+//   allowRoles("ADMIN"),
+//   addMemberToDepartment,
+// );
 
 // PATCH /api/admin/departments/:departmentId
 router.post(
