@@ -58,3 +58,32 @@ export const createUserByAdmin = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to create user" });
   }
 };
+
+export const getCompanyUsers = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    // companyId from logged-in ADMIN
+    const companyId = req.user.companyId;
+
+    // Fetch only this company's users
+    const result = await pool.query(
+      `SELECT id, name, email, role, department_id
+       FROM users
+       WHERE company_id = $1
+       ORDER BY name ASC`,
+      [companyId],
+    );
+
+    res.status(200).json({
+      success: true,
+      users: result.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Failed to fetch users",
+    });
+  }
+};
