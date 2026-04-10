@@ -33,9 +33,27 @@ if (!CLIENT_URLS) {
 //     credentials: true,
 //   }),
 // );
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URLS?.split(","), // ✅ dynamically reflect request origin
+//     credentials: true,
+//   }),
+// );
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URLS?.split(","), // ✅ dynamically reflect request origin
+    origin: (origin, callback) => {
+      const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
+
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.log("Blocked by CORS:", origin);
+      return callback(null, true); // TEMP DEBUG FIX
+    },
     credentials: true,
   }),
 );
