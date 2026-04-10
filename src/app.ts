@@ -40,19 +40,20 @@ if (!CLIENT_URLS) {
 //   }),
 // );
 
+const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
-
+      console.log("REQUEST ORIGIN:", origin);
+      console.log("ALLOWED:", allowedOrigins);
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      console.log("Blocked by CORS:", origin);
-      return callback(null, true); // TEMP DEBUG FIX
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   }),
