@@ -254,6 +254,7 @@ export const login = async (req: Request, res: Response) => {
       secure: true,
       sameSite: "none",
       path: "/",
+      domain: ".onrender.com",
     });
 
     return res.status(200).json({
