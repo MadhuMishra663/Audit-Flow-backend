@@ -190,7 +190,8 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-
+    console.log("LOGIN HIT ✔");
+    console.log(req.body);
     if (!email || !password) {
       return res.status(400).json({
         success: false,
