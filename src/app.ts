@@ -15,21 +15,27 @@ if (!CLIENT_URLS) {
   throw new Error("❌ CLIENT_URLS is not defined in .env");
 }
 
-const allowedOrigins = CLIENT_URLS.split(",");
+// const allowedOrigins = CLIENT_URLS.split(",");
 
-/* ✅ CORS MUST COME FIRST */
+// /* ✅ CORS MUST COME FIRST */
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       // allow requests with no origin (Postman, curl)
+//       if (!origin) return callback(null, true);
+
+//       if (allowedOrigins.includes(origin)) {
+//         return callback(null, true);
+//       }
+
+//       return callback(new Error("Not allowed by CORS"));
+//     },
+//     credentials: true,
+//   }),
+// );
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // allow requests with no origin (Postman, curl)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: process.env.CLIENT_URLS?.split(","), // ✅ dynamically reflect request origin
     credentials: true,
   }),
 );

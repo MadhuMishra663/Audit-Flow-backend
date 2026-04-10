@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createUserByAdmin } from "./controller";
+import { createUserByAdmin, getCompanyUsers } from "./controller";
 import { allowRoles, protect } from "../../../middleware/auth";
 
 const router = Router();
@@ -10,5 +10,5 @@ const router = Router();
 
 // POST /api/admin/users
 router.post("/", protect, allowRoles("ADMIN"), createUserByAdmin);
-
+router.get("/company-users", protect, allowRoles("ADMIN"), getCompanyUsers);
 export default router;
