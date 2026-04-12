@@ -239,11 +239,17 @@ export const login = async (req: Request, res: Response) => {
 
     const isProduction = process.env.NODE_ENV === "production";
 
+    // res.cookie("token", token, {
+    //   httpOnly: true,
+    //   secure: isProduction, // 🔥 prod me true, local me false
+    //   sameSite: isProduction ? "none" : "lax", // 🔥 important
+    //   path: "/",
+    // });
     res.cookie("token", token, {
       httpOnly: true,
-      secure: isProduction, // 🔥 prod me true, local me false
-      sameSite: isProduction ? "none" : "lax", // 🔥 important
-      path: "/",
+      secure: true, // Must be true in production (requires HTTPS)
+      sameSite: "none", // Critical for cross-site cookies
+      maxAge: 3600000,
     });
 
     return res.status(200).json({
