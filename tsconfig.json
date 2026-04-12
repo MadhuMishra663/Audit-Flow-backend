@@ -53,7 +53,7 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "target": "ES2020",
-
+"types": ["node"],
     "strict": true,
     "skipLibCheck": true,
 
