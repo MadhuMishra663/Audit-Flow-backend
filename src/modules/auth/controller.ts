@@ -328,6 +328,7 @@ export const login = async (req: Request, res: Response) => {
       message: responseMessage, // This will now show what is missing
       data: {
         token: token || "NOT_GENERATED",
+        users: user,
         user: {
           id: user.id,
           name: user.name,
