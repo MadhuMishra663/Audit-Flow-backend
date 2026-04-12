@@ -323,21 +323,26 @@ export const login = async (req: Request, res: Response) => {
     });
 
     // --- FINAL RESPONSE ---
+    // return res.status(200).json({
+    //   success: true,
+    //   Madhu: true,
+    //   message: responseMessage, // This will now show what is missing
+    //   data: {
+    //     token: token || "NOT_GENERATED",
+    //     users: user,
+    //     user: {
+    //       id: user.id,
+    //       name: user.name,
+    //       email: user.email,
+    //       role: user.role,
+    //       companyId: user.company_id || "NOT_FOUND_IN_DB",
+    //     },
+    //   },
+    // });
     return res.status(200).json({
       success: true,
-      Madhu: true,
-      message: responseMessage, // This will now show what is missing
-      data: {
-        token: token || "NOT_GENERATED",
-        users: user,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          companyId: user.company_id || "NOT_FOUND_IN_DB",
-        },
-      },
+
+      message: "Hi User",
     });
   } catch (error) {
     return res.status(500).json({
