@@ -276,82 +276,82 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
 //   }
 // };
 
-export const login = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
+// export const login = async (req: Request, res: Response) => {
+//   try {
+//     const { email, password } = req.body;
 
-    const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
-      email,
-    ]);
-    const user = result.rows[0];
+//     const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
+//       email,
+//     ]);
+//     const user = result.rows[0];
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials" });
-    }
+//     if (!user || !(await bcrypt.compare(password, user.password))) {
+//       return res
+//         .status(401)
+//         .json({ success: false, message: "Invalid credentials" });
+//     }
 
-    // --- DEBUGGING LOGIC ---
-    let missingInfo = [];
+//     // --- DEBUGGING LOGIC ---
+//     let missingInfo = [];
 
-    // Check if company_id actually exists in the DB result
-    if (!user.company_id) missingInfo.push("companyId");
+//     // Check if company_id actually exists in the DB result
+//     if (!user.company_id) missingInfo.push("companyId");
 
-    const token = jwt.sign(
-      { userId: user.id, role: user.role, companyId: user.company_id },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "1d" },
-    );
+//     const token = jwt.sign(
+//       { userId: user.id, role: user.role, companyId: user.company_id },
+//       process.env.JWT_SECRET as string,
+//       { expiresIn: "1d" },
+//     );
 
-    // Check if token was generated
-    if (!token) missingInfo.push("token");
+//     // Check if token was generated
+//     if (!token) missingInfo.push("token");
 
-    // Construct the message based on what's missing
-    const responseMessage =
-      missingInfo.length > 0
-        ? `Login successful but missing: ${missingInfo.join(", ")}`
-        : "Login successful";
+//     // Construct the message based on what's missing
+//     const responseMessage =
+//       missingInfo.length > 0
+//         ? `Login successful but missing: ${missingInfo.join(", ")}`
+//         : "Login successful";
 
-    // Cookie Logic
-    const isProduction = process.env.NODE_ENV === "production";
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
-      maxAge: 3600000,
-      path: "/",
-    });
+//     // Cookie Logic
+//     const isProduction = process.env.NODE_ENV === "production";
+//     res.cookie("token", token, {
+//       httpOnly: true,
+//       secure: isProduction,
+//       sameSite: isProduction ? "none" : "lax",
+//       maxAge: 3600000,
+//       path: "/",
+//     });
 
-    // --- FINAL RESPONSE ---
-    // return res.status(200).json({
-    //   success: true,
-    //   Madhu: true,
-    //   message: responseMessage, // This will now show what is missing
-    //   data: {
-    //     token: token || "NOT_GENERATED",
-    //     users: user,
-    //     user: {
-    //       id: user.id,
-    //       name: user.name,
-    //       email: user.email,
-    //       role: user.role,
-    //       companyId: user.company_id || "NOT_FOUND_IN_DB",
-    //     },
-    //   },
-    // });
-    return res.status(200).json({
-      success: true,
+//     // --- FINAL RESPONSE ---
+//     // return res.status(200).json({
+//     //   success: true,
+//     //   Madhu: true,
+//     //   message: responseMessage, // This will now show what is missing
+//     //   data: {
+//     //     token: token || "NOT_GENERATED",
+//     //     users: user,
+//     //     user: {
+//     //       id: user.id,
+//     //       name: user.name,
+//     //       email: user.email,
+//     //       role: user.role,
+//     //       companyId: user.company_id || "NOT_FOUND_IN_DB",
+//     //     },
+//     //   },
+//     // });
+//     return res.status(200).json({
+//       success: true,
 
-      message: "Hi User",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: process.env.NODE_ENV === "production" ? undefined : error,
-    });
-  }
-};
+//       message: "Hi User",
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server Error",
+//       error: process.env.NODE_ENV === "production" ? undefined : error,
+//     });
+//   }
+// };
 
 export const createCompanyAdmin = async (req: Request, res: Response) => {
   try {
