@@ -278,94 +278,71 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    let message = "Login successful"; // Default message
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      });
-    }
 
     const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
       email,
     ]);
     const user = result.rows[0];
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res
         .status(401)
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    if (!user.is_active) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Account is disabled" });
-    }
+    // --- DEBUGGING LOGIC ---
+    let missingInfo = [];
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials" });
-    }
-
-    // 1. Check for missing data before signing the token
-    const missingFields = [];
-    if (!user.id) missingFields.push("User ID");
-    if (!user.company_id) missingFields.push("Company ID");
+    // Check if company_id actually exists in the DB result
+    if (!user.company_id) missingInfo.push("companyId");
 
     const token = jwt.sign(
-      {
-        userId: user.id,
-        role: user.role,
-        companyId: user.company_id,
-      },
+      { userId: user.id, role: user.role, companyId: user.company_id },
       process.env.JWT_SECRET as string,
       { expiresIn: "1d" },
     );
 
-    if (!token) missingFields.push("Token generation failed");
+    // Check if token was generated
+    if (!token) missingInfo.push("token");
 
-    // 2. Update message if things are missing
-    if (missingFields.length > 0) {
-      message = `Login partially successful, but missing: ${missingFields.join(", ")}`;
-    }
+    // Construct the message based on what's missing
+    const responseMessage =
+      missingInfo.length > 0
+        ? `Login successful but missing: ${missingInfo.join(", ")}`
+        : "Login successful";
 
+    // Cookie Logic
     const isProduction = process.env.NODE_ENV === "production";
-
-    // 3. Cookie Configuration
     res.cookie("token", token, {
       httpOnly: true,
-      // If in production, secure MUST be true.
-      // If testing production build locally without HTTPS, this will fail.
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 3600000,
       path: "/",
     });
 
+    // --- FINAL RESPONSE ---
     return res.status(200).json({
       success: true,
-      message: message, // Dynamic message
+      message: responseMessage, // This will now show what is missing
       data: {
-        token: token || null,
+        token: token || "NOT_GENERATED",
+        users: user,
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-          companyId: user.company_id || null, // Ensure this matches your DB column name
+          companyId: user.company_id || "NOT_FOUND_IN_DB",
         },
       },
     });
   } catch (error) {
-    console.error("Login Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Login failed due to server error",
+      message: "Server Error",
+      error: process.env.NODE_ENV === "production" ? undefined : error,
     });
   }
 };
