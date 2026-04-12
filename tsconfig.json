@@ -48,18 +48,44 @@
 
 //   }
 // }
+// {
+//   "compilerOptions": {
+//     "module": "nodenext",
+//     "moduleResolution": "nodenext",
+//     "target": "ES2020",
+//     "types": ["node"],
+//     "strict": true,
+//     "skipLibCheck": true,
+
+//     "rootDir": "./src",
+//     "outDir": "./dist",
+
+//     "esModuleInterop": true
+//   }
+// }
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "target": "ES2020",
-    "types": ["node"],
+    /* Base Options */
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+
+    /* Strictness */
     "strict": true,
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
 
+    /* Layout */
     "rootDir": "./src",
     "outDir": "./dist",
+    "removeComments": true,
+    "sourceMap": true,
 
-    "esModuleInterop": true
-  }
+    /* The Fix for the TS2688 error */
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
