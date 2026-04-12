@@ -82,7 +82,7 @@
     "outDir": "./dist",
     "removeComments": true,
     "sourceMap": true,
-
+    "typeRoots": ["./node_modules/@types"],
     /* The Fix for the TS2688 error */
     "types": ["node"]
   },
