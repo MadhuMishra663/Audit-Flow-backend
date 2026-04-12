@@ -50,10 +50,10 @@
 // }
 {
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "ES2020",
-"types": ["node"],
+    "types": ["node"],
     "strict": true,
     "skipLibCheck": true,
 
