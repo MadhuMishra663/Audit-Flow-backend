@@ -17,19 +17,26 @@ if (!CLIENT_URLS) {
 
 const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
 
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       console.log("REQUEST ORIGIN:", origin);
+//       console.log("ALLOWED:", allowedOrigins);
+//       if (!origin) return callback(null, true);
+
+//       if (allowedOrigins.includes(origin)) {
+//         return callback(null, true);
+//       }
+
+//       return callback(new Error("Not allowed by CORS"));
+//     },
+//     credentials: true,
+//   }),
+// );
+
 app.use(
   cors({
-    origin: (origin, callback) => {
-      console.log("REQUEST ORIGIN:", origin);
-      console.log("ALLOWED:", allowedOrigins);
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
