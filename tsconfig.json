@@ -8,7 +8,6 @@
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
    "moduleResolution": "node",
-"types": ["node"],
     "target": "ES2020",
 
     // For nodejs:
