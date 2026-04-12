@@ -241,10 +241,9 @@ export const login = async (req: Request, res: Response) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: isProduction, // 🔥 prod me true, local me false
+      sameSite: isProduction ? "none" : "lax", // 🔥 important
       path: "/",
-      // domain: ".onrender.com",
     });
 
     return res.status(200).json({
