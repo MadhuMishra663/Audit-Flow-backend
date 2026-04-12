@@ -63,27 +63,50 @@
 //     "esModuleInterop": true
 //   }
 // }
+// {
+//   "compilerOptions": {
+//     /* Base Options */
+//     "target": "ES2022",
+//     "module": "commonjs",
+//     "moduleResolution": "node16",
+//     "lib": ["ES2022"],
+
+//     /* Strictness */
+//     "strict": true,
+//     "skipLibCheck": true,
+//     "esModuleInterop": true,
+//     "forceConsistentCasingInFileNames": true,
+
+//     /* Layout */
+//     "rootDir": "./src",
+//     "outDir": "./dist",
+//     "removeComments": true,
+//     "sourceMap": true,
+//     "typeRoots": ["./node_modules/@types"],
+//     /* The Fix for the TS2688 error */
+//     "types": ["node"]
+//   },
+//   "include": ["src/**/*"],
+//   "exclude": ["node_modules", "dist"]
+// }
 {
   "compilerOptions": {
-    /* Base Options */
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "lib": ["ES2022"],
 
-    /* Strictness */
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
 
-    /* Layout */
     "rootDir": "./src",
     "outDir": "./dist",
     "removeComments": true,
     "sourceMap": true,
+
     "typeRoots": ["./node_modules/@types"],
-    /* The Fix for the TS2688 error */
     "types": ["node"]
   },
   "include": ["src/**/*"],
