@@ -187,8 +187,98 @@ export const companyAdminRegister = async (req: Request, res: Response) => {
 /**
  * LOGIN
  */
+// export const login = async (req: Request, res: Response) => {
+//   try {
+//     let message;
+//     let isToken;
+//     const { email, password } = req.body;
+
+//     if (!email || !password) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Email and password are required",
+//       });
+//     }
+
+//     const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
+//       email,
+//     ]);
+
+//     const user = result.rows[0];
+
+//     if (!user) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Invalid credentials",
+//       });
+//     }
+
+//     if (!user.is_active) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Account is disabled",
+//       });
+//     }
+
+//     const isMatch = await bcrypt.compare(password, user.password);
+
+//     if (!isMatch) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Invalid credentials",
+//       });
+//     }
+
+//     const token = jwt.sign(
+//       {
+//         userId: user.id,
+//         role: user.role,
+//         companyId: user.company_id,
+//       },
+//       process.env.JWT_SECRET as string,
+//       { expiresIn: "1d" },
+//     );
+
+//     const isProduction = process.env.NODE_ENV === "production";
+
+//     // res.cookie("token", token, {
+//     //   httpOnly: true,
+//     //   secure: isProduction, // 🔥 prod me true, local me false
+//     //   sameSite: isProduction ? "none" : "lax", // 🔥 important
+//     //   path: "/",
+//     // });
+//     res.cookie("token", token, {
+//       httpOnly: true,
+//       secure: true, // Must be true in production (requires HTTPS)
+//       sameSite: "none", // Critical for cross-site cookies
+//       maxAge: 3600000,
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Login successful",
+//       data: {
+//         token,
+//         user: {
+//           id: user.id,
+//           name: user.name,
+//           email: user.email,
+//           role: user.role,
+//           companyId: user.company_id,
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       success: false,
+//       message: "Login failed",
+//     });
+//   }
+// };
+
 export const login = async (req: Request, res: Response) => {
   try {
+    let message = "Login successful"; // Default message
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -201,31 +291,31 @@ export const login = async (req: Request, res: Response) => {
     const result = await pool.query(`SELECT * FROM users WHERE email=$1`, [
       email,
     ]);
-
     const user = result.rows[0];
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     if (!user.is_active) {
-      return res.status(403).json({
-        success: false,
-        message: "Account is disabled",
-      });
+      return res
+        .status(403)
+        .json({ success: false, message: "Account is disabled" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
     }
+
+    // 1. Check for missing data before signing the token
+    const missingFields = [];
+    if (!user.id) missingFields.push("User ID");
+    if (!user.company_id) missingFields.push("Company ID");
 
     const token = jwt.sign(
       {
@@ -237,39 +327,45 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "1d" },
     );
 
+    if (!token) missingFields.push("Token generation failed");
+
+    // 2. Update message if things are missing
+    if (missingFields.length > 0) {
+      message = `Login partially successful, but missing: ${missingFields.join(", ")}`;
+    }
+
     const isProduction = process.env.NODE_ENV === "production";
 
-    // res.cookie("token", token, {
-    //   httpOnly: true,
-    //   secure: isProduction, // 🔥 prod me true, local me false
-    //   sameSite: isProduction ? "none" : "lax", // 🔥 important
-    //   path: "/",
-    // });
+    // 3. Cookie Configuration
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true, // Must be true in production (requires HTTPS)
-      sameSite: "none", // Critical for cross-site cookies
-      maxAge: 3600000,
+      // If in production, secure MUST be true.
+      // If testing production build locally without HTTPS, this will fail.
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      path: "/",
     });
 
     return res.status(200).json({
       success: true,
-      message: "Login successful",
+      message: message, // Dynamic message
       data: {
-        token,
+        token: token || null,
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-          companyId: user.company_id,
+          companyId: user.company_id || null, // Ensure this matches your DB column name
         },
       },
     });
   } catch (error) {
+    console.error("Login Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Login failed",
+      message: "Login failed due to server error",
     });
   }
 };
