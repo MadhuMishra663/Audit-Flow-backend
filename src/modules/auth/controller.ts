@@ -325,6 +325,7 @@ export const login = async (req: Request, res: Response) => {
     // --- FINAL RESPONSE ---
     return res.status(200).json({
       success: true,
+      Madhu: true,
       message: responseMessage, // This will now show what is missing
       data: {
         token: token || "NOT_GENERATED",
