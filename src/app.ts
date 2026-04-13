@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 dotenv.config();
 
 const app = express();
-
+app.set("trust proxy", 1);
 /* ✅ ENV CONFIG */
 const CLIENT_URLS = process.env.CLIENT_URLS;
 
