@@ -10,6 +10,9 @@ declare global {
 
     interface Request {
       user?: User;
+      file?: Express.Multer.File;
+      files?: Express.Multer.File[];
     }
   }
 }
+export {};
